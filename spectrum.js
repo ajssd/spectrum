@@ -765,8 +765,10 @@
 
             // Set focus on selected color to start with
             var focused = paletteContainer.find(".sp-thumb-focus");
-            if (focused) {
+            if (focused != null && focused.length > 0) {
                 focused.focus();
+            }else{
+                paletteContainer.find(".sp-thumb-el").first().focus();
             }
         }
 
