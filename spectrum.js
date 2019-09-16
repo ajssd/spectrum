@@ -1,7 +1,14 @@
+//Original Branch Details
 // Spectrum Colorpicker v1.7.1
 // https://github.com/bgrins/spectrum
 // Author: Brian Grinstead
 // License: MIT
+
+//Branched Details
+//Spectrum Colorpicker Accessibile v1.0.0
+//https://github.com/NickersWeb/spectrum
+//Author: Nick Webber
+//License: MIT
 
 (function (factory) {
     "use strict";
@@ -77,7 +84,7 @@
         return contains(style.backgroundColor, 'rgba') || contains(style.backgroundColor, 'hsla');
     })(),
     replaceInput = [
-        "<div class='sp-replacer'>",
+        "<div role='button' aria-pressed='false' aria-label='Colour Picker' class='sp-replacer' tabindex='0'>",
             "<div class='sp-preview'><div class='sp-preview-inner'></div></div>",
             "<div class='sp-dd'>&#9660;</div>",
         "</div>"
@@ -108,7 +115,7 @@
                             "<div class='sp-color'>",
                                 "<div class='sp-sat'>",
                                     "<div class='sp-val'>",
-                                        "<div class='sp-dragger'></div>",
+                                        "<div tabindex='0' class='sp-dragger'></div>",
                                     "</div>",
                                 "</div>",
                             "</div>",
@@ -144,7 +151,7 @@
                 c += (tinycolor.equals(color, current)) ? " sp-thumb-active sp-thumb-focus" : "";
                 var formattedString = tiny.toString(opts.preferredFormat || "rgb");
                 var swatchStyle = rgbaSupport ? ("background-color:" + tiny.toRgbString()) : "filter:" + tiny.toFilter();
-                html.push('<span title="' + formattedString + '" data-color="' + tiny.toRgbString() + '" class="' + c + '"><span class="sp-thumb-inner" style="' + swatchStyle + ';" /></span>');
+                html.push('<span tabindex="0" title="' + formattedString + '" data-color="' + tiny.toRgbString() + '" class="' + c + '"><span class="sp-thumb-inner" style="' + swatchStyle + ';" /></span>');
             } else {
                 var cls = 'sp-clear-display';
                 html.push($('<div />')
@@ -318,6 +325,19 @@
 
                 if (!$(e.target).is("input")) {
                     e.preventDefault();
+                }
+            });
+            offsetElement.bind("keypress.spectrum", function(e){
+                if(e.which === 13){
+                    if (!disabled) {
+                        toggle();
+                    }
+    
+                    e.stopPropagation();
+    
+                    if (!$(e.target).is("input")) {
+                        e.preventDefault();
+                    }
                 }
             });
 
@@ -519,7 +539,25 @@
             if (flat) {
                 show();
             }
-
+            function paletteElementKeyPress(e){
+                if(e.which === 13)
+                {
+                    if (e.data && e.data.ignore) {
+                        set($(e.target).closest(".sp-thumb-el").data("color"));
+                        move();
+                    }
+                    else {
+                        set($(e.target).closest(".sp-thumb-el").data("color"));
+                        move();
+                        updateOriginalInput(true);
+                        if (opts.hideAfterPaletteSelect) {
+                          hide();
+                        }
+                    }
+    
+                    return false;
+                }
+            }
             function paletteElementClick(e) {
                 if (e.data && e.data.ignore) {
                     set($(e.target).closest(".sp-thumb-el").data("color"));
@@ -536,9 +574,15 @@
 
                 return false;
             }
-
-            var paletteEvent = IE ? "mousedown.spectrum" : "click.spectrum touchstart.spectrum";
+            var paletteEvent = "";
+            if(IE){
+                paletteEvent = "mousedown.spectrum"
+            }else{
+                paletteEvent = "click.spectrum touchstart.spectrum"
+            }
+            paletteContainer.delegate(".sp-thumb-el", "keydown.spectrum", paletteElementKeyPress);
             paletteContainer.delegate(".sp-thumb-el", paletteEvent, paletteElementClick);
+            initialColorContainer.delegate(".sp-thumb-el:nth-child(1)", "keydown.spectrum", { ignore: true }, paletteElementKeyPress);
             initialColorContainer.delegate(".sp-thumb-el:nth-child(1)", paletteEvent, { ignore: true }, paletteElementClick);
         }
 
@@ -627,11 +671,8 @@
                 // Accessibility for initial color
                 var thumbs = initialColorContainer.find('.sp-thumb-el');
                 if (thumbs.length === 2) {
-                    $(thumbs[0]).attr("tabindex", 0);
                     $(thumbs[0]).attr("aria-label", opts.initialSwatchAriaLabel);
-                    $(thumbs[1]).attr("tabindex", 0);
                     $(thumbs[1]).attr("aria-label", opts.currentSwatchAriaLabel);
-
                     // Clicking Enter on the Initial color selects it
                     $(thumbs[0]).keydown(function(e) {
                         if (e.keyCode == 13) {
@@ -707,8 +748,10 @@
 
             $(doc).bind("keydown.spectrum", onkeydown);
             $(doc).bind("click.spectrum", clickout);
+            $(doc).bind("keypress.spectrum", clickout);
             $(window).bind("resize.spectrum", resize);
             replacer.addClass("sp-active");
+            replacer.attr("aria-pressed", "true");
             container.removeClass("sp-hidden");
 
             reflow();
@@ -758,9 +801,11 @@
 
             $(doc).unbind("keydown.spectrum", onkeydown);
             $(doc).unbind("click.spectrum", clickout);
+            $(doc).unbind("click.keypress", clickout);
             $(window).unbind("resize.spectrum", resize);
 
             replacer.removeClass("sp-active");
+            replacer.attr("aria-pressed", "false");
             container.addClass("sp-hidden");
 
             callbacks.hide(get());
@@ -999,6 +1044,7 @@
         function destroy() {
             boundElement.show();
             offsetElement.unbind("click.spectrum touchstart.spectrum");
+            offsetElement.unbind("keypress.spectrum");
             container.remove();
             replacer.remove();
             spectrums[spect.id] = null;
