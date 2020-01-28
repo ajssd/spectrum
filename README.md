@@ -1,5 +1,5 @@
 # Spectrum
-## The No Hassle Colorpicker
+## The No Hassle Colorpicker - Accessibility Changes
 
 See the demo and docs: http://bgrins.github.io/spectrum.
 
